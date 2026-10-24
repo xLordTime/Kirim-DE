@@ -12,7 +12,7 @@ class Owner(commands.Cog, name="owner"):
 
     async def cog_check(self, ctx: commands.Context[TheBot]) -> bool:
         if not await self.bot.is_owner(ctx.author):
-            await ctx.send("Sorry, this command may only be used by the bot owner")
+            await ctx.send("Dieser Befehl ist nur für den Bot-Eigentümer verfügbar.")
             return False
         return True
 
@@ -38,9 +38,9 @@ class Owner(commands.Cog, name="owner"):
                 case _:
                     synced = await self.bot.tree.sync()
 
-            desc = "globally" if spec is None else "to the current guild"
+            desc = "global" if spec is None else "für diesen Server"
             print(synced)
-            await ctx.send(f"Synced {len(synced)} commands {desc}!")
+            await ctx.send(f"{len(synced)} Befehle {desc} synchronisiert.")
 
         else:
             synced = 0
@@ -53,7 +53,7 @@ class Owner(commands.Cog, name="owner"):
                     synced += 1
 
             await ctx.send(
-                f"Synced the command tree to {synced}/{len(guilds)} servers."
+                f"Befehle auf {synced}/{len(guilds)} Servern synchronisiert."
             )
 
 

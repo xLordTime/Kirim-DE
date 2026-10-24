@@ -63,7 +63,7 @@ WHERE items.id == ?
 """
 
 
-class Stats(commands.GroupCog, name="item"):
+class Stats(commands.GroupCog, name="gegenstand"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -150,7 +150,7 @@ class Stats(commands.GroupCog, name="item"):
                         object_name = (await self.fetch_itemcard_object_name(a))[0][3]
 
                         copies = b
-                        stats.append(StatObject(1500, 0, f"Gives {copies} {card_name} ({object_name.decode()})"))
+                        stats.append(StatObject(1500, 0, f"Gewährt {copies} {card_name} ({object_name.decode()})"))
                     
                     # Maycasts
                     case 4:
@@ -159,7 +159,7 @@ class Stats(commands.GroupCog, name="item"):
 
                         object_name = (await self.fetch_itemcard_object_name(a))[0][3]
 
-                        stats.append(StatObject(1510, 0, f"Maycasts {card_name} ({object_name.decode()})"))
+                        stats.append(StatObject(1510, 0, f"Kann wirken: {card_name} ({object_name.decode()})"))
 
                     # Speed bonus
                     case 5:
@@ -202,18 +202,18 @@ class Stats(commands.GroupCog, name="item"):
         if secondary_school != 0:
             requirements.append(database.translate_equip_school(secondary_school, secondary=True))
         if equip_level != 0:
-            requirements.append(f"Level {equip_level}+")
+            requirements.append(f"Stufe {equip_level}+")
 
         stats = []
         if database.ExtraFlags.PET_JEWEL in extra_flags:
-            stats.append(f"Level {database.translate_pet_level(min_pet_level)}+")
+            stats.append(f"Stufe {database.translate_pet_level(min_pet_level)}+")
         elif kind == database.ItemKind.DECK:
-            stats.append(f"Max spells {max_spells}")
-            stats.append(f"Max copies {max_copies}")
+            stats.append(f"Max. Zauber {max_spells}")
+            stats.append(f"Max. Kopien {max_copies}")
             stats.append(
-                f"Max {database.translate_school(deck_school)} copies {max_school_copies}"
+                f"Max. Kopien ({database.translate_school(deck_school)}): {max_school_copies}"
             )
-            stats.append(f"Sideboard {max_tcs}")
+            stats.append(f"Schatzkarten {max_tcs}")
         stats.extend(await self.fetch_item_stats(item_id))
 
         embed = (
@@ -222,26 +222,26 @@ class Stats(commands.GroupCog, name="item"):
                 description="\n".join(stats) or "\u200b",
             )
             .set_author(name=f"{item_name}\n({object_name}: {item_id})", icon_url=database.get_item_icon_url(kind))
-            .add_field(name="Requirements", value="\n".join(requirements))
+            .add_field(name="Voraussetzungen", value="\n".join(requirements))
         )
 
         if jewels != 0:
             embed = embed.add_field(
-                name="Sockets", value=database.format_sockets(jewels)
+                name="Sockel", value=database.format_sockets(jewels)
             )
 
         if set_bonus != 0:
             set_name = await self.fetch_set_bonus_name(set_bonus)
-            embed = embed.add_field(name="Set Bonus", value=set_name)
+            embed = embed.add_field(name="Set-Bonus", value=set_name)
 
         emoji_flags = database.translate_flags(extra_flags)
         if len(emoji_flags) > 0:
-            embed.add_field(name="Flags", value="".join(emoji_flags))
+            embed.add_field(name="Eigenschaften", value="".join(emoji_flags))
 
         return embed
 
-    @app_commands.command(name="find", description="Finds a Wizard101 item by name")
-    @app_commands.describe(name="The name of the item to search for")
+    @app_commands.command(name="suchen", description="Sucht einen Wizard101-Gegenstand nach Namen")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegenstand)")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -252,6 +252,8 @@ class Stats(commands.GroupCog, name="item"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("item", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested item '{}'", interaction.user.name, name)
         else:
@@ -260,13 +262,13 @@ class Stats(commands.GroupCog, name="item"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No items with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegenstand mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
         
         elif search_by == "ID":
-            rows = await self.fetch_object_name(name)
+            rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No items with ID {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegenstand mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
         
         else:
@@ -275,6 +277,9 @@ class Stats(commands.GroupCog, name="item"):
                 filtered_rows = await self.fetch_items_with_filter(items=self.bot.item_list, school=school, kind=kind, level=level, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
                 
                 rows = await self.fetch_items_with_filter(items=closest_rows[0][-1], school=school, kind=kind, level=level, return_row=True)
@@ -285,11 +290,11 @@ class Stats(commands.GroupCog, name="item"):
             view = ItemView([await self.build_item_embed(row) for row in rows])
             await view.start(interaction)
         elif search_by == "Name":
-            embed = discord.Embed(description=f"No items with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Gegenstand mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="list", description="Finds a list of item names that contain the string")
-    @app_commands.describe(name="The name of the items to search for")
+    @app_commands.command(name="liste", description="Listet passende Gegenstand-Namen auf")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegenstand)")
     async def list_names(
         self, 
         interaction: discord.Interaction, 
@@ -299,17 +304,14 @@ class Stats(commands.GroupCog, name="item"):
         level: Optional[int] = -1,
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("item", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} searched for items that contain '{}'", interaction.user.name, name)
         else:
             logger.info("{} searched for items that contain '{}' in channel #{} of {}", interaction.user.name, name, interaction.channel.name, interaction.guild.name)
 
-        items_containing_name = []
-        for item in self.bot.item_list:
-            item: str
-
-            if name == '*' or name.lower() in item.lower():
-                items_containing_name.append(item)
+        items_containing_name = self.bot.matching_names("item", name)
 
         if len(items_containing_name) > 0:
             no_duplicate_items = [*set(items_containing_name)]
@@ -324,7 +326,7 @@ class Stats(commands.GroupCog, name="item"):
                     discord.Embed(
                         description="\n".join(item_chunk) or "\u200b",
                     )
-                    .set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                    .set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 )
                 item_embeds.append(embed)
 
@@ -332,9 +334,9 @@ class Stats(commands.GroupCog, name="item"):
             await view.start(interaction)
 
         else:
-            txt = f"Unable to find {name}."
+            txt = f"Keine Treffer für {name}."
 
-            embed = discord.Embed(description=txt).set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=txt).set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
 
             await interaction.followup.send(embed=embed)
 

@@ -10,8 +10,8 @@ class Calc(commands.Cog):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
-    @app_commands.command(name="calc", description="Simple Calculation of Damage")
-    @app_commands.describe(buffs="Your buffs separated by a space (use a \"P\" prefix to denote pierce) EX: 35 35 40 20P -50P", damage="Input your pre-curved damage if you are in PvE")
+    @app_commands.command(name="schaden", description="Berechnet Schaden in Wizard101")
+    @app_commands.describe(buffs="Verstärkungen mit Leerzeichen trennen; P als Suffix für Durchdringung: 35 35 40 20P -50P", damage="Im PvE den bereits durch die Schadenskurve angepassten Wert eingeben.")
     async def find(
         self, 
         interaction: discord.Interaction,
@@ -36,12 +36,12 @@ class Calc(commands.Cog):
         no_crit, crit = database.calc_damage(base, damage, pierce, critical, buffs_as_modifiers, block, pvp)
         embed = (
             discord.Embed(
-                title=f"Damage Calculator",
+                title=f"Schadensrechner",
                 color=discord.Color.dark_blue(),
-                description=f"{base}{database.DAMAGE} Base\n\nStats:\n{damage}% {database.DAMAGE}\n{pierce}% {database.PIERCE}\n{critical} {database.CRIT}\n{resist}% {database.RESIST}\n{block} {database.BLOCK}\n\nBuffs: {buffs}"
+                description=f"{base}{database.DAMAGE} Grundschaden\n\nWerte:\n{damage}% {database.DAMAGE}\n{pierce}% {database.PIERCE}\n{critical} {database.CRIT}\n{resist}% {database.RESIST}\n{block} {database.BLOCK}\n\nVerstärkungen: {buffs}"
             )
-            .add_field(name="No Crit Damage", value=f"{no_crit:,}{database.DAMAGE}")
-            .add_field(name="Crit Damage", value=f"{crit:,}{database.DAMAGE}")
+            .add_field(name="Schaden ohne kritischen Treffer", value=f"{no_crit:,}{database.DAMAGE}")
+            .add_field(name="Schaden mit kritischem Treffer", value=f"{crit:,}{database.DAMAGE}")
         )
 
         await interaction.followup.send(embed=embed)

@@ -76,7 +76,7 @@ WHERE pets.id == ?
 def remove_indices(lst, indices):
     return [value for index, value in enumerate(lst) if index not in indices]
 
-class Pets(commands.GroupCog, name="pet"):
+class Pets(commands.GroupCog, name="begleiter"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -153,7 +153,7 @@ class Pets(commands.GroupCog, name="pet"):
             if card_name:
                 card_names.append(f"{card_name[0]} ({object_name})")
             else:
-                card_names.append(f"Card doesn't exist ({object_name})")
+                card_names.append(f"Karte nicht vorhanden ({object_name})")
 
         return card_names
     
@@ -209,34 +209,34 @@ class Pets(commands.GroupCog, name="pet"):
 
         embed = (
             discord.Embed(
-                title=f"Wow {wow_factor}" + " Exclusive" * exclusive,
+                title=f"Wow {wow_factor}" + " Exklusiv" * exclusive,
                 color=database.make_school_color(school),
             )
             .set_author(name=f"{pet_name}\n({real_name}: {pet_id})\n{egg[0][0]}", icon_url=database.translate_school(school).url)
-            .add_field(name="Talents", value=talent_string, inline=True)
+            .add_field(name="Talente", value=talent_string, inline=True)
             .add_field(name="Derby", value=derby_string, inline=True)
-            .add_field(name="Stats", value=f"{strength} Strength\n{intellect} Intellect\n{agility} Agility\n{will} Will\n{power} Power\n", inline=False)
+            .add_field(name="Werte", value=f"{strength} Stärke\n{intellect} Intelligenz\n{agility} Gewandtheit\n{will} Willenskraft\n{power} Kraft\n", inline=False)
         )
 
         if len(cards) > 0:
             cards_string = self.format_card_string(cards)
-            embed = embed.add_field(name="Cards", value=cards_string)
+            embed = embed.add_field(name="Karten", value=cards_string)
 
 
         if set_bonus != 0:
             set_name = await self.fetch_set_bonus_name(set_bonus)
-            embed = embed.add_field(name="Set Bonus", value=set_name)
+            embed = embed.add_field(name="Set-Bonus", value=set_name)
 
 
         emoji_flags = database.translate_flags(extra_flags)
         if len(emoji_flags) > 0:
-            embed.add_field(name="Flags", value="".join(emoji_flags))
+            embed.add_field(name="Eigenschaften", value="".join(emoji_flags))
 
         return embed
 
 
-    @app_commands.command(name="find", description="Finds a Wizard101 pet by name")
-    @app_commands.describe(name="The name of the pet to search for")
+    @app_commands.command(name="suchen", description="Sucht einen Wizard101-Begleiter nach Namen")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Begleiter)")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -247,6 +247,8 @@ class Pets(commands.GroupCog, name="pet"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("pet", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested pet '{}'", interaction.user.name, name)
         else:
@@ -255,13 +257,13 @@ class Pets(commands.GroupCog, name="pet"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No pets with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Begleiter mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
         
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No pets with ID {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Begleiter mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -270,6 +272,9 @@ class Pets(commands.GroupCog, name="pet"):
                 filtered_rows = await self.fetch_pets_with_filter(self.bot.pet_list, school, wow, exclusive, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
                 
                 rows = await self.fetch_pets_with_filter(closest_rows[0][-1], school, wow, exclusive, return_row=True)
@@ -281,11 +286,11 @@ class Pets(commands.GroupCog, name="pet"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No pets with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Begleiter mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="list", description="Finds a list of pet names that contain the string")
-    @app_commands.describe(name="The name of the pets to search for")
+    @app_commands.command(name="liste", description="Listet passende Begleiter-Namen auf")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Begleiter)")
     async def list_names(
         self, 
         interaction: discord.Interaction, 
@@ -295,17 +300,14 @@ class Pets(commands.GroupCog, name="pet"):
         exclusive: Optional[bool] = None,
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("pet", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} searched for pets that contain '{}'", interaction.user.name, name)
         else:
             logger.info("{} searched for pets that contain '{}' in channel #{} of {}", interaction.user.name, name, interaction.channel.name, interaction.guild.name)
 
-        pets_containing_name = []
-        for pet in self.bot.pet_list:
-            pet: str
-
-            if name == '*' or name.lower() in pet.lower():
-                pets_containing_name.append(pet)
+        pets_containing_name = self.bot.matching_names("pet", name)
 
         no_duplicate_pets = [*set(pets_containing_name)]
         filtered_pets = await self.fetch_pets_with_filter(pets=no_duplicate_pets, school=school, wow=wow, exclusive=exclusive)
@@ -320,7 +322,7 @@ class Pets(commands.GroupCog, name="pet"):
                     discord.Embed(
                         description="\n".join(pet_chunk) or "\u200b",
                     )
-                    .set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                    .set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 )
                 pet_embeds.append(embed)
 
@@ -328,7 +330,7 @@ class Pets(commands.GroupCog, name="pet"):
             await view.start(interaction)
 
         else:
-            embed = discord.Embed(description=f"Unable to find {name}.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Keine Treffer für {name}.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
 
             await interaction.followup.send(embed=embed)
 

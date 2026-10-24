@@ -116,3 +116,11 @@ SummonedImages
 
 .idea/
 .vscode/
+# Lokale Konfiguration, Spielinhalte und Server-Sicherungen
+/.env
+/data/
+/backups/
+/.venv/
+/kirim-de.service
+*.db-wal
+*.db-shm

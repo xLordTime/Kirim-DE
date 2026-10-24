@@ -43,7 +43,7 @@ WHERE fish.id == ?
 def remove_indices(lst, indices):
     return [value for index, value in enumerate(lst) if index not in indices]
 
-class Fish(commands.GroupCog, name="fish"):
+class Fish(commands.GroupCog, name="fisch"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -60,7 +60,7 @@ class Fish(commands.GroupCog, name="fish"):
         async with self.bot.db.execute(FIND_ID_QUERY, (id,)) as cursor:
             return await cursor.fetchall()
         
-    async def fetch_fish_with_filter(self, fish: List[str], school: Optional[str] = "Any", rank: Optional[int] = -1, is_sentinel: Optional[bool] = None, return_row=False):
+    async def fetch_fish_with_filter(self, fish: List[str], school: Optional[str] = "Any", rank: Optional[int] = -1, is_sentinel: Optional[bool] = None, return_row=False, object_name=False):
         if isinstance(fish, str):
             fish = [fish]
 
@@ -71,6 +71,9 @@ class Fish(commands.GroupCog, name="fish"):
         for chunk in database.sql_chunked(fish, 900):  # Stay under SQLite's limit
             placeholders = database._make_placeholders(len(chunk))
             query = FIND_FISH_WITH_FILTER_QUERY.format(placeholders=placeholders)
+            if object_name:
+                query = query.replace("locale_en.data COLLATE NOCASE IN", "fish.real_name IN")
+                chunk = [name.encode("utf-8") for name in chunk]
 
             args = (
                 *chunk,
@@ -107,20 +110,20 @@ class Fish(commands.GroupCog, name="fish"):
 
         embed = (
             discord.Embed(
-                title=f"Rank {rank}" + " Sentinel" * is_sentinel,
+                title=f"Rang {rank}" + " Wächter" * is_sentinel,
                 color=database.make_school_color(school),
             )
             .set_author(name=f"{fish_name}\n({real_name}: {fish_id})", icon_url=database.translate_school(school).url)
-            .add_field(name="Size", value=f"Base: {base_length}\nMinimum: {round(min_size * base_length, 2)} ({min_size})\nMaximum: {round(max_size * base_length, 2)} ({max_size})")
-            .add_field(name="Speed", value=f"{speed}")
-            .add_field(name="Bite", value=f"Bite Time: {bite_seconds}\nInitial Chance: {initial_bite_chance}\nIncremental Chance: {incremental_bite_chance}")
+            .add_field(name="Größe", value=f"Basis: {base_length}\nMinimum: {round(min_size * base_length, 2)} ({min_size})\nMaximum: {round(max_size * base_length, 2)} ({max_size})")
+            .add_field(name="Geschwindigkeit", value=f"{speed}")
+            .add_field(name="Anbeißen", value=f"Anbeißzeit: {bite_seconds}\nAnfangschance: {initial_bite_chance}\nChancenzuwachs: {incremental_bite_chance}")
         )
 
         return embed
 
 
-    @app_commands.command(name="find", description="Finds a Wizard101 fish by name")
-    @app_commands.describe(name="The name of the fish to search for")
+    @app_commands.command(name="suchen", description="Sucht einen Wizard101-Fisch nach Namen")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Fisch)")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -131,6 +134,8 @@ class Fish(commands.GroupCog, name="fish"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("fish", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested fish '{}'", interaction.user.name, name)
         else:
@@ -139,13 +144,13 @@ class Fish(commands.GroupCog, name="fish"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No fish with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Fisch mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
         
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No fish with ID {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Fisch mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -154,6 +159,9 @@ class Fish(commands.GroupCog, name="fish"):
                 filtered_rows = await self.fetch_fish_with_filter(self.bot.fish_list, school, rank, is_sentinel, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
                 
                 rows = await self.fetch_fish_with_filter(closest_rows[0][-1], school, rank, is_sentinel, return_row=True)
@@ -165,11 +173,11 @@ class Fish(commands.GroupCog, name="fish"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No fish with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Fisch mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="list", description="Finds a list of fish names that contain the string")
-    @app_commands.describe(name="The name of the fish to search for")
+    @app_commands.command(name="liste", description="Listet passende Fisch-Namen auf")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Fisch)")
     async def list_names(
         self, 
         interaction: discord.Interaction, 
@@ -180,6 +188,8 @@ class Fish(commands.GroupCog, name="fish"):
         use_object_name: Optional[bool] = False,
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("fish", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} searched for fish that contain '{}'", interaction.user.name, name)
         else:
@@ -195,11 +205,7 @@ class Fish(commands.GroupCog, name="fish"):
                     fish_containing_name.append(fish)
                     
         else:
-            for fish in self.bot.fish_list:
-                fish: str
-
-                if name == '*' or name.lower() in fish.lower():
-                    fish_containing_name.append(fish)
+            fish_containing_name = self.bot.matching_names("fish", name)
 
         no_duplicate_fish = [*set(fish_containing_name)]
         filtered_fish = await self.fetch_fish_with_filter(fish=no_duplicate_fish, school=school, rank=rank, is_sentinel=is_sentinel, object_name=use_object_name)
@@ -214,7 +220,7 @@ class Fish(commands.GroupCog, name="fish"):
                     discord.Embed(
                         description="\n".join(fish_chunk) or "\u200b",
                     )
-                    .set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                    .set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 )
                 fish_embeds.append(embed)
 
@@ -222,7 +228,7 @@ class Fish(commands.GroupCog, name="fish"):
             await view.start(interaction)
 
         else:
-            embed = discord.Embed(description=f"Unable to find {name}.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Keine Treffer für {name}.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
 
             await interaction.followup.send(embed=embed)
 

@@ -7,6 +7,7 @@ import math
 import discord
 
 from .emojis import *
+from .command_locale import LABELS
 
 _SCHOOL_COLORS = [
     discord.Color.greyple(), # Universal
@@ -29,7 +30,7 @@ _SCHOOL_COLORS = [
     discord.Color.from_str("#9999b1"), # Whirlyburly
 ]
 
-_PET_LEVELS = ["Baby", "Teen", "Adult", "Ancient", "Epic", "Mega", "Ultra"]
+_PET_LEVELS = ["Baby", "Teenager", "Erwachsen", "Antik", "Episch", "Mega", "Ultra"]
 
 school_prism_values = {
     72777: ICE,
@@ -267,7 +268,7 @@ class StatObject:
     string: str
 
     def to_string(self) -> str:
-        if self.string.startswith(("Allows", "Invul", "Gives", "Maycasts", "-")):
+        if self.string.startswith(("Erlaubt", "Immun", "Gewährt", "Kann wirken", "-")):
             return self.string
         elif self.value > 0:
             return f"+{self.value}{self.string}"
@@ -419,27 +420,27 @@ _STAT_DISPLAY_TABLE = {
     _fnv_1a(b"XPPercent"): "XP",
     _fnv_1a(b"GoldPercent"): ":coin:",
     _fnv_1a(b"CanonicalMaxEnergy"): f" Max {ENERGY}",
-    _fnv_1a(b"CanonicalAllCriticalHit"): f" {CRIT} Rating",
-    _fnv_1a(b"CanonicalAllBlock"): f" {BLOCK} Rating",
+    _fnv_1a(b"CanonicalAllCriticalHit"): f" {CRIT} Wert",
+    _fnv_1a(b"CanonicalAllBlock"): f" {BLOCK} Wert",
     _fnv_1a(b"CanonicalAllPowerPipRating"): f"% {POWER_PIP} Chance",
     _fnv_1a(b"CanonicalAllReduceDamageRating"): f" {RESIST}",
     _fnv_1a(b"CanonicalAllAccuracyRating"): f" {ACCURACY}",
-    _fnv_1a(b"CanonicalStormCriticalHit"): f" {STORM}{CRIT} Rating",
-    _fnv_1a(b"CanonicalMythCriticalHit"): f" {MYTH}{CRIT} Rating",
-    _fnv_1a(b"CanonicalLifeCriticalHit"): f" {LIFE}{CRIT} Rating",
-    _fnv_1a(b"CanonicalIceCriticalHit"): f" {ICE}{CRIT} Rating",
-    _fnv_1a(b"CanonicalFireCriticalHit"): f" {FIRE}{CRIT} Rating",
-    _fnv_1a(b"CanonicalDeathCriticalHit"): f" {DEATH}{CRIT} Rating",
-    _fnv_1a(b"CanonicalBalanceCriticalHit"): f" {BALANCE}{CRIT} Rating",
-    _fnv_1a(b"CanonicalShadowCriticalHit"): f" {SHADOW}{CRIT} Rating",
-    _fnv_1a(b"CanonicalBalanceBlock"): f" {BALANCE}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalDeathBlock"): f" {DEATH}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalFireBlock"): f" {FIRE}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalIceBlock"): f" {ICE}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalLifeBlock"): f" {LIFE}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalMythBlock"): f" {MYTH}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalStormBlock"): f" {STORM}{BLOCK} Rating",
-    _fnv_1a(b"CanonicalShadowBlock"): f" {SHADOW}{BLOCK} Rating",
+    _fnv_1a(b"CanonicalStormCriticalHit"): f" {STORM}{CRIT} Wert",
+    _fnv_1a(b"CanonicalMythCriticalHit"): f" {MYTH}{CRIT} Wert",
+    _fnv_1a(b"CanonicalLifeCriticalHit"): f" {LIFE}{CRIT} Wert",
+    _fnv_1a(b"CanonicalIceCriticalHit"): f" {ICE}{CRIT} Wert",
+    _fnv_1a(b"CanonicalFireCriticalHit"): f" {FIRE}{CRIT} Wert",
+    _fnv_1a(b"CanonicalDeathCriticalHit"): f" {DEATH}{CRIT} Wert",
+    _fnv_1a(b"CanonicalBalanceCriticalHit"): f" {BALANCE}{CRIT} Wert",
+    _fnv_1a(b"CanonicalShadowCriticalHit"): f" {SHADOW}{CRIT} Wert",
+    _fnv_1a(b"CanonicalBalanceBlock"): f" {BALANCE}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalDeathBlock"): f" {DEATH}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalFireBlock"): f" {FIRE}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalIceBlock"): f" {ICE}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalLifeBlock"): f" {LIFE}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalMythBlock"): f" {MYTH}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalStormBlock"): f" {STORM}{BLOCK} Wert",
+    _fnv_1a(b"CanonicalShadowBlock"): f" {SHADOW}{BLOCK} Wert",
     _fnv_1a(b"CanonicalBalanceAccuracyRating"): f"% {BALANCE}{ACCURACY}",
     _fnv_1a(b"CanonicalDeathAccuracyRating"): f"% {DEATH}{ACCURACY}",
     _fnv_1a(b"CanonicalFireAccuracyRating"): f"% {FIRE}{ACCURACY}",
@@ -456,15 +457,15 @@ _STAT_DISPLAY_TABLE = {
     _fnv_1a(b"CanonicalMythReduceDamageRating"): f" {MYTH}{RESIST}",
     _fnv_1a(b"CanonicalStormReduceDamageRating"): f" {STORM}{RESIST}",
     _fnv_1a(b"CanonicalShadowReduceDamageRating"): f" {SHADOW}{RESIST}",
-    _fnv_1a(b"CanonicalBalanceMastery"): f"Allows {POWER_PIP} with {BALANCE} spells",
-    _fnv_1a(b"CanonicalDeathMastery"): f"Allows {POWER_PIP} with {DEATH} spells",
-    _fnv_1a(b"CanonicalFireMastery"): f"Allows {POWER_PIP} with {FIRE} spells",
-    _fnv_1a(b"CanonicalIceMastery"): f"Allows {POWER_PIP} with {ICE} spells",
-    _fnv_1a(b"CanonicalLifeMastery"): f"Allows {POWER_PIP} with {LIFE} spells",
-    _fnv_1a(b"CanonicalMythMastery"): f"Allows {POWER_PIP} with {MYTH} spells",
-    _fnv_1a(b"CanonicalStormMastery"): f"Allows {POWER_PIP} with {STORM} spells",
+    _fnv_1a(b"CanonicalBalanceMastery"): f"Erlaubt {POWER_PIP} mit {BALANCE}-Zauber",
+    _fnv_1a(b"CanonicalDeathMastery"): f"Erlaubt {POWER_PIP} mit {DEATH}-Zauber",
+    _fnv_1a(b"CanonicalFireMastery"): f"Erlaubt {POWER_PIP} mit {FIRE}-Zauber",
+    _fnv_1a(b"CanonicalIceMastery"): f"Erlaubt {POWER_PIP} mit {ICE}-Zauber",
+    _fnv_1a(b"CanonicalLifeMastery"): f"Erlaubt {POWER_PIP} mit {LIFE}-Zauber",
+    _fnv_1a(b"CanonicalMythMastery"): f"Erlaubt {POWER_PIP} mit {MYTH}-Zauber",
+    _fnv_1a(b"CanonicalStormMastery"): f"Erlaubt {POWER_PIP} mit {STORM}-Zauber",
     _fnv_1a(b"CanonicalStunResistance"): f"% {STUN_BLOCK}",
-    _fnv_1a(b"ReduceDamageInvunerable"): f"Invulnerable to {DAMAGE}",
+    _fnv_1a(b"ReduceDamageInvunerable"): f"Immun gegen {DAMAGE}",
     _fnv_1a(b"CanonicalShadowPip"): f" {SHADOW_PIP_STAT}",
     _fnv_1a(b"CanonicalAllFlatReduceDamage"): f" {FLAT_RESIST}",
     _fnv_1a(b"CanonicalLifeFlatReduceDamage"): f" {LIFE}{FLAT_RESIST}",
@@ -476,20 +477,20 @@ _STAT_DISPLAY_TABLE = {
     _fnv_1a(b"CanonicalBalanceFlatReduceDamage"): f" {BALANCE}{FLAT_RESIST}",
     _fnv_1a(b"CanonicalShadowFlatReduceDamage"): f" {SHADOW}{FLAT_RESIST}",
     _fnv_1a(b"CanonicalWispBonus"): f" {HEALTH_WISP}{MANA_WISP}",
-    _fnv_1a(b"CanonicalAllPipConversion"): f" {PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalFirePipConversion"): f" {FIRE}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalIcePipConversion"): f" {ICE}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalLifePipConversion"): f" {LIFE}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalDeathPipConversion"): f" {DEATH}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalMythPipConversion"): f" {MYTH}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalBalancePipConversion"): f" {BALANCE}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalStormPipConversion"): f" {STORM}{PIP_CONVERSION} Rating",
-    _fnv_1a(b"CanonicalShadowPipConversion"): f" {SHADOW}{PIP_CONVERSION} Rating",
+    _fnv_1a(b"CanonicalAllPipConversion"): f" {PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalFirePipConversion"): f" {FIRE}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalIcePipConversion"): f" {ICE}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalLifePipConversion"): f" {LIFE}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalDeathPipConversion"): f" {DEATH}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalMythPipConversion"): f" {MYTH}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalBalancePipConversion"): f" {BALANCE}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalStormPipConversion"): f" {STORM}{PIP_CONVERSION} Wert",
+    _fnv_1a(b"CanonicalShadowPipConversion"): f" {SHADOW}{PIP_CONVERSION} Wert",
     _fnv_1a(b"CanonicalMoonReduceDamage"): f" {MOON}{RESIST}",
     _fnv_1a(b"CanonicalSunReduceDamage"): f" {SUN}{RESIST}",
     _fnv_1a(b"CanonicalStarReduceDamage"): f" {STAR}{RESIST}",
-    _fnv_1a(b"CanonicalShadowPipRating"): f" {SHADOW_PIP_STAT} Rating",
-    _fnv_1a(b"CanonicalAllArchmastery"): f" {ARCHMASTERY} Rating",
+    _fnv_1a(b"CanonicalShadowPipRating"): f" {SHADOW_PIP_STAT} Wert",
+    _fnv_1a(b"CanonicalAllArchmastery"): f" {ARCHMASTERY} Wert",
 }
 
 
@@ -666,17 +667,17 @@ def unpack_int_list(value: int) -> List[int]:
 def translate_rarity(rarity: int) -> str:
     match rarity:
         case -1:
-            return "Unknown"
+            return "Unbekannt"
         case 0:
-            return "Common"
+            return "Gewöhnlich"
         case 1:
-            return "Uncommon"
+            return "Ungewöhnlich"
         case 2:
-            return "Rare"
+            return "Selten"
         case 3:
-            return "Ultra-rare"
+            return "Ultraselten"
         case 4:
-            return "Epic"
+            return "Episch"
 
 
 def translate_school(school: int) -> discord.PartialEmoji:
@@ -685,14 +686,14 @@ def translate_school(school: int) -> discord.PartialEmoji:
 
 def translate_equip_school(school: int, secondary=False) -> str:
     school_emoji = _SCHOOLS[school & 0x7FFF_FFFF]
-    school_str = "School"
+    school_str = "Schule"
     if secondary:
-        school_str = "Magic Weaving"
+        school_str = "Magisches Weben"
     
     if school & (1 << 31) != 0:
-        return f"All{secondary*' magic weaving'} schools except {school_emoji}"
+        return f"Alle Schulen außer {school_emoji}"
     else:
-        return f"{school_emoji} {school_str} Only"
+        return f"Nur {school_emoji} ({school_str})"
 
 
 def make_school_color(school: int) -> discord.Color:
@@ -706,7 +707,7 @@ def get_item_icon_url(item: ItemKind) -> str:
 
 def get_item_str(item: ItemKind) -> str:
     bit_index = item.value.bit_length() - 1
-    return _ITEMS_STR[bit_index]
+    return LABELS.get(_ITEMS_STR[bit_index], _ITEMS_STR[bit_index])
 
 
 def get_monstrology_string(monstro: MonstrologyKind) -> List[str]:
@@ -732,25 +733,25 @@ def format_sockets(jewels: int) -> str:
                 description = "???"
             case 1:
                 emoji = SOCKET_TEAR
-                description = "Tear"
+                description = "Träne"
             case 2:
                 emoji = SOCKET_CIRCLE
-                description = "Circle"
+                description = "Kreis"
             case 3:
                 emoji = SOCKET_SQUARE
-                description = "Square"
+                description = "Quadrat"
             case 4:
                 emoji = SOCKET_TRIANGLE
-                description = "Triangle"
+                description = "Dreieck"
             case 5:
                 emoji = PIN_POWER
-                description = "Power"
+                description = "Kraft"
             case 6:
                 emoji = PIN_SHIELD
-                description = "Shield"
+                description = "Schild"
             case 7:
                 emoji = PIN_SWORD
-                description = "Sword"
+                description = "Schwert"
 
             case _:
                 raise ValueError("Unknown emoji type")

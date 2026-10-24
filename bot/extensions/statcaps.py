@@ -9,6 +9,7 @@ from discord.ext import commands
 from loguru import logger
 
 from ..database import StatObject, _SCHOOLS_STR
+from ..command_locale import LABELS
 from .. import TheBot, database, emojis
 from ..menus import ItemView
 
@@ -18,7 +19,7 @@ SELECT * FROM statcaps WHERE level = ? AND school = ?;
 """
 
 
-class StatCaps(commands.GroupCog, name="statcaps"):
+class StatCaps(commands.GroupCog, name="grenzwerte"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -180,20 +181,20 @@ class StatCaps(commands.GroupCog, name="statcaps"):
                 color=database.make_school_color(school),
                 description=f"{max_health} {emojis.HEALTH}    {max_mana} {emojis.MANA}",
             )
-            .set_author(name=f"Level {level} {_SCHOOLS_STR[school-2]}", icon_url=database.translate_school(school).url)
-            .add_field(name="Damage", value="\n".join(damage))
-            .add_field(name="Resist", value="\n".join(resist))
-            .add_field(name="Accuracy", value="\n".join(accuracy))
-            .add_field(name="Critical", value="\n".join(crit))
+            .set_author(name=f"Stufe {level} {LABELS.get(_SCHOOLS_STR[school-2], _SCHOOLS_STR[school-2])}", icon_url=database.translate_school(school).url)
+            .add_field(name="Schaden", value="\n".join(damage))
+            .add_field(name="Resistenz", value="\n".join(resist))
+            .add_field(name="Treffsicherheit", value="\n".join(accuracy))
+            .add_field(name="Kritisch", value="\n".join(crit))
             .add_field(name="Block", value="\n".join(block))
-            .add_field(name="Pierce", value="\n".join(pierce))
-            .add_field(name="Pip Conserve", value="\n".join(pserve))
-            .add_field(name="Extra", value="\n".join(extra))
+            .add_field(name="Durchdringung", value="\n".join(pierce))
+            .add_field(name="Pip-Erhalt", value="\n".join(pserve))
+            .add_field(name="Zusätzlich", value="\n".join(extra))
         )
 
         return embed
 
-    @app_commands.command(name="find", description="Finds a stat cap by level and school")
+    @app_commands.command(name="suchen", description="Zeigt Werteobergrenzen nach Stufe und Schule")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -211,10 +212,13 @@ class StatCaps(commands.GroupCog, name="statcaps"):
         if level >= 10 and level <= 190:
             rows = await self.fetch_stat_cap(level=level, school=(_SCHOOLS_STR.index(school)+2))
         
+            if not rows:
+                await interaction.followup.send("Für diese Stufe und Schule sind im importierten Datenstand keine Werte vorhanden.")
+                return
             view = ItemView([await self.build_stat_cap_embed(row) for row in rows])
             await view.start(interaction)
         else:
-            embed = discord.Embed(description="Level Range must be between 10 to 180").set_author(name=f"Unknown Stat Cap", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description="Die Stufe muss zwischen 10 und 190 liegen.").set_author(name=f"Keine Werteobergrenze vorhanden", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
 

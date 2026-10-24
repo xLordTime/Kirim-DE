@@ -60,7 +60,7 @@ WHERE spells.template_id == ?
 def remove_indices(lst, indices):
     return [value for index, value in enumerate(lst) if index not in indices]
 
-class Spells(commands.GroupCog, name="spell"):
+class Spells(commands.GroupCog, name="zauber"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -280,10 +280,10 @@ class Spells(commands.GroupCog, name="spell"):
             case database.SpellEffects.add_combat_trigger_list:
                 new_line += f"Add to Combat Trigger List"
             case database.SpellEffects.add_spell_to_deck:
-                object_name = (await self.fetch_object_name_from_id(param))[0][3].decode("utf-8").replace("_", "\_")
+                object_name = (await self.fetch_object_name_from_id(param))[0][3].decode("utf-8").replace("_", r"\_")
                 new_line += f"Add {object_name} To Deck"
             case database.SpellEffects.add_spell_to_hand:
-                object_name = (await self.fetch_object_name_from_id(param))[0][3].decode("utf-8").replace("_", "\_")
+                object_name = (await self.fetch_object_name_from_id(param))[0][3].decode("utf-8").replace("_", r"\_")
                 new_line += f"Add {object_name} To Hand"
             case database.SpellEffects.after_life:
                 new_line += f"{param} {school}{emojis.HEART} {emojis.AFTERLIFE}"
@@ -762,7 +762,7 @@ class Spells(commands.GroupCog, name="spell"):
             case database.SpellEffects.shadow_decrement_turn:
                 new_line += "Shadow Decrement Turn"
             case database.SpellEffects.spawn_creature | database.SpellEffects.summon_creature:
-                mob_name = (await self.fetch_mob_object_name_from_id(param))[0][2].decode("utf-8").replace("_", "\_")
+                mob_name = (await self.fetch_mob_object_name_from_id(param))[0][2].decode("utf-8").replace("_", r"\_")
                 new_line += f"Summon {mob_name}"
             case database.SpellEffects.steal_charm:
                 match disposition:
@@ -1055,7 +1055,7 @@ class Spells(commands.GroupCog, name="spell"):
             rank = "X"
 
         add_plus_sign = "+ " * any([shadow_pips, fire_pips, ice_pips, storm_pips, myth_pips, life_pips, death_pips, balance_pips])
-        pip_count = f"Rank {rank} {add_plus_sign}{shadow_pips}{fire_pips}{ice_pips}{storm_pips}{myth_pips}{life_pips}{death_pips}{balance_pips}"
+        pip_count = f"Rang {rank} {add_plus_sign}{shadow_pips}{fire_pips}{ice_pips}{storm_pips}{myth_pips}{life_pips}{death_pips}{balance_pips}"
 
 
 
@@ -1086,7 +1086,7 @@ class Spells(commands.GroupCog, name="spell"):
 
                 parsed_description = self.parse_description(raw_description, effects)
             else:
-                parsed_description = "Description Not Found"
+                parsed_description = "Keine Beschreibung vorhanden"
 
         if school == 12:
             try:
@@ -1101,7 +1101,7 @@ class Spells(commands.GroupCog, name="spell"):
             type_string = database._SPELL_TYPES[type_name]
 
         if school in (12, 14, 15):
-            accuracy_field = f"Costs {energy} {emojis.ENERGY}"
+            accuracy_field = f"Kosten: {energy} {emojis.ENERGY}"
         else:
             accuracy_field = f"{accuracy}% {emojis.ACCURACY}"
 
@@ -1124,7 +1124,7 @@ class Spells(commands.GroupCog, name="spell"):
             )
             .set_author(name=f"{spell_name}\n({real_name}: {spell_id})", icon_url=database.translate_school(school).url)
             .add_field(name=accuracy_field, value="")
-            .add_field(name=f"Type {type_string}", value="")
+            .add_field(name=f"Typ {type_string}", value="")
         )
 
         if levelreq != 0:
@@ -1149,8 +1149,8 @@ class Spells(commands.GroupCog, name="spell"):
         return embed, discord_file
 
 
-    @app_commands.command(name="find", description="Finds a Wizard101 spell by name")
-    @app_commands.describe(name="The name of the spell to search for")
+    @app_commands.command(name="suchen", description="Sucht einen Wizard101-Zauber nach Namen")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Zauber)")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -1163,6 +1163,8 @@ class Spells(commands.GroupCog, name="spell"):
         num_targets: Optional[int] = 1
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("spell", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested spell '{}'", interaction.user.name, name)
         else:
@@ -1171,13 +1173,13 @@ class Spells(commands.GroupCog, name="spell"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No spells with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Zauber mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
         
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No spells with ID {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Zauber mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -1186,6 +1188,9 @@ class Spells(commands.GroupCog, name="spell"):
                 filtered_rows = await self.fetch_spells_with_filter(self.bot.spell_list, school, kind, rank, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
                 
                 rows = await self.fetch_spells_with_filter(closest_rows[0][-1], school, kind, rank, return_row=True)
@@ -1201,11 +1206,11 @@ class Spells(commands.GroupCog, name="spell"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No spells with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Zauber mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="list", description="Finds a list of spell names that contain the string")
-    @app_commands.describe(name="The name of the spells to search for")
+    @app_commands.command(name="liste", description="Listet passende Zauber-Namen auf")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Zauber)")
     async def list_names(
         self, 
         interaction: discord.Interaction, 
@@ -1215,17 +1220,14 @@ class Spells(commands.GroupCog, name="spell"):
         rank: Optional[int] = -1,
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("spell", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} searched for spells that contain '{}'", interaction.user.name, name)
         else:
             logger.info("{} searched for spells that contain '{}' in channel #{} of {}", interaction.user.name, name, interaction.channel.name, interaction.guild.name)
 
-        spells_containing_name = []
-        for spell in self.bot.spell_list:
-            spell: str
-
-            if name == '*' or name.lower() in spell.lower():
-                spells_containing_name.append(spell)
+        spells_containing_name = self.bot.matching_names("spell", name)
 
         no_duplicate_spells = [*set(spells_containing_name)]
         filtered_spells = await self.fetch_spells_with_filter(spells=no_duplicate_spells, school=school, kind=kind, rank=rank)
@@ -1240,7 +1242,7 @@ class Spells(commands.GroupCog, name="spell"):
                     discord.Embed(
                         description="\n".join(spell_chunk) or "\u200b",
                     )
-                    .set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                    .set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 )
                 spell_embeds.append(embed)
 
@@ -1248,7 +1250,7 @@ class Spells(commands.GroupCog, name="spell"):
             await view.start(interaction)
 
         else:
-            embed = discord.Embed(description=f"Unable to find {name}.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Keine Treffer für {name}.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
 
             await interaction.followup.send(embed=embed)
 

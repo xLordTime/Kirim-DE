@@ -42,7 +42,7 @@ INNER JOIN locale_en ON locale_en.id == mobs.name
 WHERE mobs.id == ?
 """
 
-class Mobs(commands.GroupCog, name="mob"):
+class Mobs(commands.GroupCog, name="gegner"):
     def __init__(self, bot: TheBot):
         self.bot = bot
 
@@ -187,7 +187,7 @@ class Mobs(commands.GroupCog, name="mob"):
         monstro = database.MonstrologyKind(row[15])
         mob_name = row[17]
 
-        ai = [f"Intelligence {intelligence}", f"Selfishness {selfishness}", f"Aggressiveness {aggressiveness}"]
+        ai = [f"Intelligenz {intelligence}", f"Eigennutz {selfishness}", f"Aggressivität {aggressiveness}"]
 
         stats = await self.fetch_mob_stats(mob_id)
         items = await self.fetch_mob_items(mob_id)
@@ -204,13 +204,13 @@ class Mobs(commands.GroupCog, name="mob"):
 
         flags = []
         if secondary_school:
-            flags.append(f"Secondary School {database.translate_school(secondary_school)}")
+            flags.append(f"Zweitschule {database.translate_school(secondary_school)}")
         if bool(has_cheats):
-            flags.append(f"This {title} Mob Cheats!")
+            flags.append(f"Dieser Gegner ({title}) hat Sonderregeln!")
         if max_shadow > 0:
             stats.append(f"Max {max_shadow} {emojis.SHADOW_PIP}")
         if not stunnable:
-            flags.append(f"Stunnable and Beguilable")
+            flags.append(f"Kann betäubt und betört werden")
         
         extracts = database.get_monstrology_string(monstro)
 
@@ -219,15 +219,15 @@ class Mobs(commands.GroupCog, name="mob"):
                 color=database.make_school_color(school),
                 description="\n".join(stats) or "\u200b",
             )
-            .set_author(name=f"{mob_name}\n({real_name}: {mob_id})\nHP {hp}\nRank {rank} {title}", icon_url=database.translate_school(school).url)
-            .add_field(name="AI", value="\n".join(ai))
+            .set_author(name=f"{mob_name}\n({real_name}: {mob_id})\nLP {hp}\nRang {rank} {title}", icon_url=database.translate_school(school).url)
+            .add_field(name="Verhalten", value="\n".join(ai))
         )
 
         if flags:
-            embed.add_field(name="Flags", value="\n".join(flags))
+            embed.add_field(name="Eigenschaften", value="\n".join(flags))
 
         if extracts:
-            embed.add_field(name="Extracts", value="\n".join(extracts))
+            embed.add_field(name="Animus-Arten", value="\n".join(extracts))
 
         discord_file = None
         if image_file:
@@ -276,7 +276,7 @@ class Mobs(commands.GroupCog, name="mob"):
         embed = (
             discord.Embed(
                 color=database.make_school_color(school),
-                description="**Spell Deck**\n" + "\n".join(formatted_spells) or "\u200b",
+                description="**Zauberdeck**\n" + "\n".join(formatted_spells) or "\u200b",
             )
             .set_author(name=f"{mob_name}\n({decoded_name}: {mob_id})", icon_url=database.translate_school(school).url)
         )
@@ -333,11 +333,11 @@ class Mobs(commands.GroupCog, name="mob"):
         embed = (
             discord.Embed(
                 color=database.make_school_color(mob_school),
-                description=f"{base}{database.DAMAGE} Base\n\nStats:\n{damage}% {school_emoji}{database.DAMAGE}\n{pierce}% {school_emoji}{database.PIERCE}\n{critical} {school_emoji}{database.CRIT}\n{mob_buff}% {school_emoji}{database.RESIST}\n{mob_block} {school_emoji}{database.BLOCK}\n\nBuffs: {buffs}"
+                description=f"{base}{database.DAMAGE} Grundschaden\n\nWerte:\n{damage}% {school_emoji}{database.DAMAGE}\n{pierce}% {school_emoji}{database.PIERCE}\n{critical} {school_emoji}{database.CRIT}\n{mob_buff}% {school_emoji}{database.RESIST}\n{mob_block} {school_emoji}{database.BLOCK}\n\nVerstärkungen: {buffs}"
             )
-            .set_author(name=f"Damage Calc on {mob_name}\n({real_name}: {mob_id})\nHP {hp}", icon_url=database.translate_school(mob_school).url)
-            .add_field(name="No Crit Damage", value=f"{no_crit:,}{database.DAMAGE}")
-            .add_field(name="Crit Damage", value=f"{crit:,}{database.DAMAGE}")
+            .set_author(name=f"Schadensberechnung gegen {mob_name}\n({real_name}: {mob_id})\nLP {hp}", icon_url=database.translate_school(mob_school).url)
+            .add_field(name="Schaden ohne kritischen Treffer", value=f"{no_crit:,}{database.DAMAGE}")
+            .add_field(name="Schaden mit kritischem Treffer", value=f"{crit:,}{database.DAMAGE}")
         )
         
         discord_file = None
@@ -356,8 +356,8 @@ class Mobs(commands.GroupCog, name="mob"):
         return embed, discord_file
 
 
-    @app_commands.command(name="find", description="Finds a Wizard101 mob by name")
-    @app_commands.describe(name="The name of the mob to search for")
+    @app_commands.command(name="suchen", description="Sucht einen Wizard101-Gegner nach Namen")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegner)")
     async def find(
         self, 
         interaction: discord.Interaction, 
@@ -368,6 +368,8 @@ class Mobs(commands.GroupCog, name="mob"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("mob", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested mob '{}'", interaction.user.name, name)
         else:
@@ -377,13 +379,13 @@ class Mobs(commands.GroupCog, name="mob"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with id {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -392,6 +394,9 @@ class Mobs(commands.GroupCog, name="mob"):
                 filtered_rows = await self.fetch_mobs_with_filter(self.bot.mob_list, school, kind, rank, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
 
                 rows = await self.fetch_mobs_with_filter(closest_rows[0][-1], school, kind, rank, return_row=True)
@@ -406,11 +411,11 @@ class Mobs(commands.GroupCog, name="mob"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No mobs with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Gegner mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
     
-    @app_commands.command(name="deck", description="Finds a Wizard101 mob deck by name")
-    @app_commands.describe(name="The name of the mob to search for")
+    @app_commands.command(name="deck", description="Zeigt das Zauberdeck eines Gegners")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegner)")
     async def deck(
         self, 
         interaction: discord.Interaction, 
@@ -421,6 +426,8 @@ class Mobs(commands.GroupCog, name="mob"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("mob", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested mob deck '{}'", interaction.user.name, name)
         else:
@@ -429,13 +436,13 @@ class Mobs(commands.GroupCog, name="mob"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with id {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -444,6 +451,9 @@ class Mobs(commands.GroupCog, name="mob"):
                 filtered_rows = await self.fetch_mobs_with_filter(self.bot.mob_list, school, kind, rank, return_row=True)
                 closest_rows = [(row, fuzz.token_set_ratio(name, row[-1]) + fuzz.ratio(name, row[-1])) for row in filtered_rows]
                 closest_rows = sorted(closest_rows, key=lambda x: x[1], reverse=True)
+                if not closest_rows:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_rows = list(zip(*closest_rows))[0]
 
                 rows = await self.fetch_mobs_with_filter(closest_rows[0][-1], school, kind, rank, return_row=True)
@@ -458,11 +468,11 @@ class Mobs(commands.GroupCog, name="mob"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No mobs with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Gegner mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="list", description="Finds a list of mob names that contain the string")
-    @app_commands.describe(name="The name of the mobs to search for")
+    @app_commands.command(name="liste", description="Listet passende Gegner-Namen auf")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegner)")
     async def list_names(
         self, 
         interaction: discord.Interaction, 
@@ -472,17 +482,14 @@ class Mobs(commands.GroupCog, name="mob"):
         rank: Optional[int] = -1,
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("mob", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} searched for mobs that contain '{}'", interaction.user.name, name)
         else:
             logger.info("{} searched for mobs that contain '{}' in channel #{} of {}", interaction.user.name, name, interaction.channel.name, interaction.guild.name)
 
-        mobs_containing_name = []
-        for mob in self.bot.mob_list:
-            mob: str
-
-            if name == '*' or name.lower() in mob.lower():
-                mobs_containing_name.append(mob)
+        mobs_containing_name = self.bot.matching_names("mob", name)
 
         no_duplicate_mobs = [*set(mobs_containing_name)]
         filtered_mobs = await self.fetch_mobs_with_filter(mobs=no_duplicate_mobs, school=school, kind=kind, rank=rank)
@@ -497,7 +504,7 @@ class Mobs(commands.GroupCog, name="mob"):
                     discord.Embed(
                         description="\n".join(mob_chunk) or "\u200b",
                     )
-                    .set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                    .set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 )
                 mob_embeds.append(embed)
 
@@ -505,11 +512,11 @@ class Mobs(commands.GroupCog, name="mob"):
             await view.start(interaction)
 
         else:
-            embed = discord.Embed(description=f"Unable to find {name}.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Keine Treffer für {name}.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="calc", description="Calcs damage against a specific mob")
-    @app_commands.describe(name="The name of the mobs to search for", buffs="Your buffs separated by a space (use a \"P\" prefix to denote pierce) EX: 35 35 40 20P -50P", damage="Input your pre-curved damage if you are in PvE")
+    @app_commands.command(name="schaden", description="Berechnet Schaden gegen einen bestimmten Gegner")
+    @app_commands.describe(name="Name des gesuchten Eintrags (Gegner)", buffs="Verstärkungen mit Leerzeichen trennen; P als Suffix für Durchdringung: 35 35 40 20P -50P", damage="Im PvE den bereits durch die Schadenskurve angepassten Wert eingeben.")
     async def calc(
         self,
         interaction: discord.Interaction,
@@ -524,6 +531,8 @@ class Mobs(commands.GroupCog, name="mob"):
         search_by: Optional[Literal["Name", "Object", "ID"]] = "Name",
     ):
         await interaction.response.defer()
+        if locals().get("search_by", "Name") == "Name":
+            name = self.bot.resolve_search("mob", name)
         if type(interaction.channel) is DMChannel or type(interaction.channel) is PartialMessageable:
             logger.info("{} requested calc on mob '{}'", interaction.user.name, name)
         else:
@@ -532,13 +541,13 @@ class Mobs(commands.GroupCog, name="mob"):
         if search_by == "Object":
             rows = await self.fetch_object_name(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with object name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit Objektname {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         elif search_by == "ID":
             rows = await self.fetch_id(name)
             if not rows:
-                embed = discord.Embed(description=f"No mobs with id {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+                embed = discord.Embed(description=f"Kein Gegner mit ID {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
                 await interaction.followup.send(embed=embed)
                 
         else:
@@ -546,6 +555,9 @@ class Mobs(commands.GroupCog, name="mob"):
             if not rows:
                 closest_names = [(string, fuzz.token_set_ratio(name, string) + fuzz.ratio(name, string)) for string in self.bot.mob_list]
                 closest_names = sorted(closest_names, key=lambda x: x[1], reverse=True)
+                if not closest_names:
+                    await interaction.followup.send("Keine Treffer für diese Filter gefunden.")
+                    return
                 closest_names = list(zip(*closest_names))[0]
 
                 rows = await self.fetch_mob(closest_names[0])
@@ -560,7 +572,7 @@ class Mobs(commands.GroupCog, name="mob"):
             await view.start(interaction)
         elif search_by == "Name":
             logger.info("Failed to find '{}'", name)
-            embed = discord.Embed(description=f"No mobs with name {name} found.").set_author(name=f"Searching: {name}", icon_url=emojis.UNIVERSAL.url)
+            embed = discord.Embed(description=f"Kein Gegner mit Name {name} gefunden.").set_author(name=f"Suche: {name}", icon_url=emojis.UNIVERSAL.url)
             await interaction.followup.send(embed=embed)
 
 

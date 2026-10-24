@@ -1,2 +1,5 @@
 @echo off
-pipenv run bot
+@echo off
+cd /d "%~dp0"
+py -3 server.py run
+pause
