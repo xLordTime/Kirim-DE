@@ -129,9 +129,10 @@ def backup(root=ROOT):
                     copy = Path(temporary) / f"{key}.db"
                     database_copy(config[key], copy)
                     archive.write(copy, f"data/{key}.db")
-            runtime = config["data"] / "runtime.json"
-            if runtime.is_file():
-                archive.write(runtime, "data/runtime.json")
+            for filename in ("runtime.json", "emojis.json"):
+                file = config["data"] / filename
+                if file.is_file():
+                    archive.write(file, f"data/{filename}")
             custom = config["data"] / "locales"
             if custom.is_dir():
                 for file in sorted(custom.glob("*.json")):
@@ -315,6 +316,9 @@ def main():
     importer = sub.add_parser("import-db")
     importer.add_argument("source", type=Path)
     importer.add_argument("--decks", action="store_true")
+    emoji_parser = sub.add_parser("emojis", help="App-Emojis verwalten")
+    emoji_commands = emoji_parser.add_subparsers(dest="emoji_command", required=True)
+    emoji_commands.add_parser("sync", help="Fehlende Wizard101-Symbole in die Discord-App importieren")
     args = parser.parse_args()
     try:
         ensure_env()
@@ -338,6 +342,8 @@ def main():
                     print(backup())
                 elif args.command == "import-db":
                     import_database(args.source, decks=args.decks)
+                elif args.command == "emojis":
+                    run(active_python(), "-m", "bot.emoji_sync")
     except (RuntimeError, OSError, sqlite3.Error, subprocess.CalledProcessError) as error:
         raise SystemExit(f"Kirim-DE: {error}")
 

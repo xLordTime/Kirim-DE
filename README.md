@@ -67,6 +67,19 @@ journalctl -u kirim-de.service -f
 
 Der Dienst benötigt keine privilegierten Discord-Intents. Beim Einladen des Bots die Bereiche **bot** und **applications.commands** verwenden und ihm mindestens Kanalzugriff, Nachrichten senden, Links einbetten und optional Dateien anhängen erlauben.
 
+## Wizard101-Emojis importieren
+
+Im Projektordner mit dem Benutzer der Bot-Installation ausführen:
+
+```bash
+python3 server.py emojis sync
+sudo systemctl restart kirim-de.service
+```
+
+Der Import verwendet den Bot-Token aus **.env**, um die Originalsymbole als Emojis der eigenen Discord-App hochzuladen. Mehrere Symbole mit derselben Quell-ID teilen sich einen Upload. Ein erneuter Aufruf übernimmt vorhandene App-Emojis und ergänzt die fehlenden. Der Befehl funktioniert auch bei laufendem Bot. Einen per Konsole gestarteten Bot anschließend über die Konsole neu starten.
+
+Die Zuordnung liegt als **emojis.json** im konfigurierten Datenordner (**data/** in der Standardeinstellung). Kirim-DE lädt sie beim Start und zeigt für fehlende Symbole lesbare Begriffe an. Unter **/zauber suchen** lassen sich Schul- und Pip-Symbole prüfen, unter **/gegenstand suchen** die Ausrüstungswerte.
+
 ## Updates
 
 Im Projektordner:

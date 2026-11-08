@@ -1,166 +1,254 @@
-from discord import PartialEmoji
+"""Wizard101-Symbole und ihre Zuordnung zu Discord-App-Emojis."""
+import asyncio
+from dataclasses import dataclass
+import json
+from pathlib import Path
 
-UNIVERSAL = PartialEmoji.from_str("<:A_:1111511060839669820>") # DONE
-FIRE = PartialEmoji.from_str("<:F_:1111509221054361700>") # DONE
-ICE = PartialEmoji.from_str("<:I_:1111509224506265761>") # DONE
-STORM = PartialEmoji.from_str("<:S_:1111509228541190214>") # DONE
-DEATH = PartialEmoji.from_str("<:D_:1111509223591915560>") # DONE
-LIFE = PartialEmoji.from_str("<:L_:1111509357679628298>") # DONE
-MYTH = PartialEmoji.from_str("<:M_:1111509222480416849>") # DONE
-BALANCE = PartialEmoji.from_str("<:B_:1111509219968045166>") # DONE
-SUN = PartialEmoji.from_str("<:S_:1111509218898481184>") # DONE
-STAR = PartialEmoji.from_str("<:S_:1111509217921220629>") # DONE
-MOON = PartialEmoji.from_str("<:M_:1111509325744189553>") # DONE
-GARDENING = PartialEmoji.from_str("<:G_:1110954212566761604>") # DONE
-SHADOW = PartialEmoji.from_str("<:S_:1111509216432242748>") # DONE
-FISHING = PartialEmoji.from_str("<:F_:1110954210557694154>") # DONE
-CANTRIPS = PartialEmoji.from_str("<:C_:1099490127983673434>") # DONE
-CASTLEMAGIC = PartialEmoji.from_str("<:CM:1110953210694353028>") # DONE
-WHIRLYBURLY = PartialEmoji.from_str("<:U_:1099498462711648416>") # DONE
-WEAVING_CASTER = PartialEmoji.from_str("<:WC:1435134801270280192>")
-WEAVING_TARGET = PartialEmoji.from_str("<:WT:1435136856885825606>")
+import aiohttp
+import discord
+from loguru import logger
 
-HEART = PartialEmoji.from_str("<:H_:1099490441268834365>") # DONE
-HEALTH = PartialEmoji.from_str("<:H_:1099490340685226166>") # DONE
-MANA = PartialEmoji.from_str("<:M_:1099494269959557240>") # DONE
-ENERGY = PartialEmoji.from_str("<:E_:1099494247381598279>") # DONE
-DAMAGE = PartialEmoji.from_str("<:D_:1099490157587075075>") # DONE
-FLAT_DAMAGE = PartialEmoji.from_str("<:F_:1099504205175206009>") # Done
-RESIST = PartialEmoji.from_str("<:R_:1099490284083101706>") # DONE
-FLAT_RESIST = PartialEmoji.from_str("<:F_:1099504248179404911>") # Done
-ACCURACY = PartialEmoji.from_str("<:A_:1099490418661531678>") # DONE
-CRIT = PartialEmoji.from_str("<:C_:1099490127983673434>") # DONE
-BLOCK = PartialEmoji.from_str("<:B_:1099490076670570526>") # DONE
-PIERCE = PartialEmoji.from_str("<:P_:1099490253686980622>") # DONE
-INCOMING = PartialEmoji.from_str("<:I_:1099494559907581982>") # DONE
-OUTGOING = PartialEmoji.from_str("<:O_:1099490223680913591>") # DONE
-STUN_BLOCK = PartialEmoji.from_str("<:S_:1099499321528942622>") # Done
-PIP_CONVERSION = PartialEmoji.from_str("<:PC:1099498554277507073>") # Done
-ARCHMASTERY = PartialEmoji.from_str("<:A_:1099498588008095845>") # Done
-SPEED = PartialEmoji.from_str("<:S_:1099499155640029284>") # Done
 
-HEALTH_WISP = PartialEmoji.from_str("<:H:1057796529286549524>")
-MANA_WISP = PartialEmoji.from_str("<:M:1057796530855227503>")
-FISHING_LUCK = PartialEmoji.from_str("<:F_:1099505488086962197>") # Done
+EMOJI_MAP_FILE = "emojis.json"
+APP_EMOJI_NAMES: dict[int, str] = {}
+_active_emojis: dict[int, discord.PartialEmoji] = {}
 
-PIP = PartialEmoji.from_str("<:P_:1099498720686526596>") # Done
-POWER_PIP = PartialEmoji.from_str("<:PP:1099490366832525422>") # DONE
-SHADOW_PIP = PartialEmoji.from_str("<:SP:1099490394884014090>") # DONE
-SHADOW_PIP_STAT = PartialEmoji.from_str("<:SP:1111511532472385599>") # DONE
 
-HAT = PartialEmoji.from_str("<:H:1056720350890696794>")
-ROBE = PartialEmoji.from_str("<:R:1056724593244635156>")
-BOOTS = PartialEmoji.from_str("<:B:1056720259240972308>")
-WAND = PartialEmoji.from_str("<:W:1056726250829389844>")
-ATHAME = PartialEmoji.from_str("<:A:1056720255315099649>")
-AMULET = PartialEmoji.from_str("<:A:1056720253213749259>")
-RING = PartialEmoji.from_str("<:R:1056722653311938580>")
-DECK = PartialEmoji.from_str("<:D:1056720307433521172>")
-MOUNT = PartialEmoji.from_str("<:M:1056721062102048878>")
-JEWEL = PartialEmoji.from_str("<:J:1058115414888026254>")
+def source_url(source_id: int) -> str:
+    return f"https://cdn.discordapp.com/emojis/{source_id}.webp?size=128"
 
-SOCKET_LOCKED = PartialEmoji.from_str("<:L_:1099498847882981386>") # Done
-SOCKET_TEAR = PartialEmoji.from_str("<:T_:1099505202173837372>") # Done
-SOCKET_CIRCLE = PartialEmoji.from_str("<:C_:1099498888047644703>") # Done
-SOCKET_SQUARE = PartialEmoji.from_str("<:S_:1099505313616502856>") # Done
-SOCKET_TRIANGLE = PartialEmoji.from_str("<:T_:1099505231055818823>") # Done
-SOCKET_STAR =  PartialEmoji.from_str("<:JP:1435739641402753106>")
 
-PIN_POWER = PartialEmoji.from_str("<:P_:1099490465117642823>") # DONE
-PIN_SHIELD = PartialEmoji.from_str("<:P_:1099504900452405268>") # Done
-PIN_SWORD = PartialEmoji.from_str("<:P_:1099490500651794442>") # DONE
+@dataclass(frozen=True, slots=True)
+class GameEmoji:
+    source_id: int
+    label: str
 
-NO_AUCTION = PartialEmoji.from_str("<:NA:1103072061997469806>") # DONE
-CROWNS_ONLY = PartialEmoji.from_str("<:C_:1103073196795772988>") # DONE
-NO_COMBAT = PartialEmoji.from_str("<:NC:1103072126115782656>") # DONE
-NO_DROPS = PartialEmoji.from_str("<:ND:1103077911067643974>") # DONE
-NO_DYE = PartialEmoji.from_str("<:ND:1103072157904424971>") # DONE
-NO_HATCHMAKING = PartialEmoji.from_str("<:NH:1103072185611984896>") # DONE
-NO_PVP = PartialEmoji.from_str("<:NP:1103072213525082243>") # DONE
-NO_SELL = PartialEmoji.from_str("<:NS:1103073274474287174>") # DONE
-NO_SHATTER = PartialEmoji.from_str("<:NS:1103073305843478599>") # DONE
-NO_TRADE = PartialEmoji.from_str("<:NT:1103074240741244928>") # DONE
-PVP_ONLY = PartialEmoji.from_str("<:P_:1103076334130958406>") # DONE
-ARENA_POINTS_ONLY = PartialEmoji.from_str("<:A_:1103076387478306826>") # DONE
-BLUE_ARENA_POINTS_ONLY = PartialEmoji.from_str("<:BA:1103076471750279229>") # DONE
-LEVEL_RESTRICTION = PartialEmoji.from_str("<:LR:1250964062758764614>") # DONE
+    def __str__(self) -> str:
+        emoji = _active_emojis.get(self.source_id)
+        return str(emoji) if emoji else f"[{self.label}]"
 
-NONE = PartialEmoji.from_str("<:NA:1107114212142100480>") # DONE
-CHARM = PartialEmoji.from_str("<:C_:1107749929880911953>") # DONE
-WARD = PartialEmoji.from_str("<:W_:1107116033279524946>") # DONE
-AURA = PartialEmoji.from_str("<:A_:1107114218714583050>") # DONE
-GLOBAL = PartialEmoji.from_str("<:U_:1099498462711648416>") # DONE
-AOE = PartialEmoji.from_str("<:A_:1107752173271531601>") # DONE
-STEAL = PartialEmoji.from_str("<:S_:1107116039034122281>") # DONE
-MANIPULATION = PartialEmoji.from_str("<:M_:1107113759757049956>") # DONE
-ENCHANTMENT = PartialEmoji.from_str("<:E_:1107114210862829578>") # DONE
-AURA_NEGATIVE = PartialEmoji.from_str("<:AN:1107114217632440491>") # DONE
-BLADE = PartialEmoji.from_str("<:B_:1107114216420294696>") # DONE
-CURSE = PartialEmoji.from_str("<:C_:1107114214738382848>") # DONE
-DOT = PartialEmoji.from_str("<:DOT:1107113767868842094>") # DONE
-BOMB = PartialEmoji.from_str("<:B_:1107113765511626863>") # DONE
-HOT = PartialEmoji.from_str("<:HOT:1107113760927252501>") # DONE
-JINX = PartialEmoji.from_str("<:J_:1107114209390637126>") # DONE
-MUTATE = PartialEmoji.from_str("<:M_:1107113757693448202>") # DONE
-PABSORB = PartialEmoji.from_str("<:PA:1107113758289047615>") # DONE
-PBLADE = PartialEmoji.from_str("<:PB:1107113756397420556>") # DONE
-PCHARM = PartialEmoji.from_str("<:PC:1107113755428524064>") # DONE
-PCURSE = PartialEmoji.from_str("<:PC:1107113754883280956>") # DONE
-PDOT = PartialEmoji.from_str("<:PD:1107113753541099561>") # DONE
-PBOMB = PartialEmoji.from_str("<:PB:1107116043316506644>") # DONE
-PHOT = PartialEmoji.from_str("<:PH:1107116041928200294>") # DONE
-PJINX = PartialEmoji.from_str("<:PJ:1107116040606982279>") # DONE
-POLYMORPH = PartialEmoji.from_str("<:P_:1107118045744332812>") # DONE
-PTRAP = PartialEmoji.from_str("<:PT:1107116039994617887>") # DONE
-PWARD = PartialEmoji.from_str("<:PW:1107133878575059044>") # DONE
-RANDOM = PartialEmoji.from_str("<:R_:1107133876603715644>") # DONE
-TRAP = PartialEmoji.from_str("<:T_:1107116031417266187>") # DONE
-THREAT = PartialEmoji.from_str("<:TH:1107113771173949460>") # DONE
-STUN = PartialEmoji.from_str("<:S_:1107114221021450250>") # DONE
-DISPEL = PartialEmoji.from_str("<:D_:1107114277665525852>") # DONE
-MINION = PartialEmoji.from_str("<:M_:1107114223496081518>") # DONE
-ROUNDS = PartialEmoji.from_str("<:R_:1107133797109075988>") # DONE
-SPIRIT = PartialEmoji.from_str("<:S_:1107113774378405901>") # DONE
-ELEMENTAL = PartialEmoji.from_str("<:E_:1107111620800426024>") # DONE
-ALL_ENEMIES = PartialEmoji.from_str("<:AE:1107111669961855018>") # DONE
-ALL_FRIENDS = PartialEmoji.from_str("<:AF:1107111568463908905>") # DONE
-ALL_ENEMIES_SQUARE = PartialEmoji.from_str("<:ES:1107749884880228472>") # DONE
-ALL_FRIENDS_SQUARE = PartialEmoji.from_str("<:FS:1107749883101839390>") # DONE
-ALL_ENEMIES_SELECT = PartialEmoji.from_str("<:E_:1222021754986430504>") # DONE
-ALL_FRIENDS_SELECT = PartialEmoji.from_str("<:F_:1222021790184898621>") # DONE
-AFTERLIFE = PartialEmoji.from_str("<:AL:1107111534506823840>") # DONE
-ABSORB = PartialEmoji.from_str("<:A_:1107111476730286141>") # DONE
-DAMAGE_OR_DRAIN = PartialEmoji.from_str("<:DD:1107111451342147645>") # DONE
-SELF = PartialEmoji.from_str("<:S_:1107111430278357093>") # DONE
-CLOAK = PartialEmoji.from_str("<:C_:1107111407138394113>") # DONE
-CHROMATIC_CASTER = PartialEmoji.from_str("<:CC:1222566258705432596>") # DONE
-CHROMATIC_TARGET = PartialEmoji.from_str("<:CT:1222566223431077968>") # DONE
-SHIELD = PartialEmoji.from_str("<:S_:1222565837978730538>") # DONE
-WEAKNESS = PartialEmoji.from_str("<:W_:1222565866806186038>") # DONE
+    @property
+    def url(self) -> str:
+        emoji = _active_emojis.get(self.source_id)
+        # Discord kann das Originalbild in einem Embed auch als CDN-URL laden.
+        return emoji.url if emoji else source_url(self.source_id)
 
-GROWING = PartialEmoji.from_str("<:GR:1110956271928086709>") # DONESH
-PEST = PartialEmoji.from_str("<:P_:1110956273014427778>") # DONE
-SOIL = PartialEmoji.from_str("<:S_:1110956263740821614>") # DONE
-G_UTILITY = PartialEmoji.from_str("<:U_:1110956270804021358>") # DONE
-PROTECTION = PartialEmoji.from_str("<:P_:1110958909918806076>") # DONE
 
-CATCHING = PartialEmoji.from_str("<:C_:1110956269851922572>") # DONE
-FS_UTILITY = PartialEmoji.from_str("<:U_:1110956265951199293>") # DONE
+def _register(name: str, source_id: int, label: str) -> GameEmoji:
+    # Mehrere Spielsymbole mit derselben Quell-ID teilen sich einen Upload.
+    APP_EMOJI_NAMES.setdefault(source_id, f"kirim_{name}")
+    return GameEmoji(source_id, label)
 
-INCANTATION = PartialEmoji.from_str("<:F_:1110957277042725047>") # DONE
-BENEFICIAL = PartialEmoji.from_str("<:B_:1110956268434247780>") # DONE
-SIGIL = PartialEmoji.from_str("<:S_:1110957279940984872>") # DONE
-TELEPORTATION = PartialEmoji.from_str("<:T_:1110957278540070983>") # DONE
-RITUAL = PartialEmoji.from_str("<:R_:1110956267134013543>") # DONE
 
-SHADOW_SELF = PartialEmoji.from_str("<:SF:1429994134713925672>")
-SHADOW_CREATURE = PartialEmoji.from_str("<:SC:1429994132117393591>")
-SHADOW_MINION = PartialEmoji.from_str("<:SM:1429994133358907513>")
+def read_emoji_map(path: Path, application_id: int | None) -> dict[int, discord.PartialEmoji]:
+    if application_id is None:
+        return {}
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError) as error:
+        logger.warning("Emoji-Zuordnung konnte nicht gelesen werden: {}", error)
+        return {}
 
-FIRE_PIP = PartialEmoji.from_str("<:PF:1434355875132211210>")
-ICE_PIP = PartialEmoji.from_str("<:PI:1434355880723222569>")
-STORM_PIP = PartialEmoji.from_str("<:PS:1434355876491300964>")
-DEATH_PIP = PartialEmoji.from_str("<:PD:1434355881641771149>")
-LIFE_PIP = PartialEmoji.from_str("<:PL:1434355879825637456>")
-MYTH_PIP = PartialEmoji.from_str("<:PM:1434355878642847774>")
-BALANCE_PIP = PartialEmoji.from_str("<:PB:1434355882409459712>")
+    if not isinstance(state, dict) or not isinstance(state.get("emojis"), dict):
+        logger.warning("Ungültiges Format für die Emoji-Zuordnung in {}", path)
+        return {}
+    if state.get("application_id") != str(application_id):
+        logger.warning("Die Emoji-Zuordnung in {} gehört zu einer anderen Discord-App.", path)
+        return {}
+
+    entries = {}
+    for source_id in APP_EMOJI_NAMES:
+        value = state["emojis"].get(str(source_id))
+        if isinstance(value, str):
+            emoji = discord.PartialEmoji.from_str(value)
+            if emoji.id is not None:
+                entries[source_id] = emoji
+    return entries
+
+
+async def activate_emoji_map(client: discord.Client, path: Path) -> int:
+    global _active_emojis
+    saved = read_emoji_map(path, client.application_id)
+    if saved:
+        try:
+            async with asyncio.timeout(5):
+                current = await client.fetch_application_emojis()
+        except (discord.DiscordException, aiohttp.ClientError, OSError, TimeoutError):
+            logger.warning("App-Emojis konnten nicht abgeglichen werden. Gespeicherte IDs werden verwendet.")
+        else:
+            by_id = {emoji.id: emoji for emoji in current}
+            saved = {
+                source_id: discord.PartialEmoji.from_str(str(by_id[emoji.id]))
+                for source_id, emoji in saved.items()
+                if emoji.id in by_id
+            }
+    _active_emojis = saved
+    return len(saved)
+
+
+UNIVERSAL = _register("universal", 1111511060839669820, "Alle Schulen")
+FIRE = _register("fire", 1111509221054361700, "Feuer")
+ICE = _register("ice", 1111509224506265761, "Eis")
+STORM = _register("storm", 1111509228541190214, "Sturm")
+DEATH = _register("death", 1111509223591915560, "Tod")
+LIFE = _register("life", 1111509357679628298, "Leben")
+MYTH = _register("myth", 1111509222480416849, "Mythos")
+BALANCE = _register("balance", 1111509219968045166, "Balance")
+SUN = _register("sun", 1111509218898481184, "Sonne")
+STAR = _register("star", 1111509217921220629, "Stern")
+MOON = _register("moon", 1111509325744189553, "Mond")
+GARDENING = _register("gardening", 1110954212566761604, "Gartenarbeit")
+SHADOW = _register("shadow", 1111509216432242748, "Schatten")
+FISHING = _register("fishing", 1110954210557694154, "Angeln")
+CANTRIPS = _register("cantrips", 1099490127983673434, "Zaubertricks")
+CASTLEMAGIC = _register("castlemagic", 1110953210694353028, "Schlossmagie")
+WHIRLYBURLY = _register("whirlyburly", 1099498462711648416, "WhirlyBurly")
+WEAVING_CASTER = _register("weaving_caster", 1435134801270280192, "Webschule des Zaubernden")
+WEAVING_TARGET = _register("weaving_target", 1435136856885825606, "Webschule des Ziels")
+
+HEART = _register("heart", 1099490441268834365, "Heilung")
+HEALTH = _register("health", 1099490340685226166, "Lebenspunkte")
+MANA = _register("mana", 1099494269959557240, "Mana")
+ENERGY = _register("energy", 1099494247381598279, "Energie")
+DAMAGE = _register("damage", 1099490157587075075, "Schaden")
+FLAT_DAMAGE = _register("flat_damage", 1099504205175206009, "Fester Schaden")
+RESIST = _register("resist", 1099490284083101706, "Resistenz")
+FLAT_RESIST = _register("flat_resist", 1099504248179404911, "Feste Resistenz")
+ACCURACY = _register("accuracy", 1099490418661531678, "Genauigkeit")
+CRIT = _register("crit", 1099490127983673434, "Kritisch")
+BLOCK = _register("block", 1099490076670570526, "Block")
+PIERCE = _register("pierce", 1099490253686980622, "Durchdringung")
+INCOMING = _register("incoming", 1099494559907581982, "Erhalten")
+OUTGOING = _register("outgoing", 1099490223680913591, "Ausgehend")
+STUN_BLOCK = _register("stun_block", 1099499321528942622, "Betäubungsschutz")
+PIP_CONVERSION = _register("pip_conversion", 1099498554277507073, "Pip-Umwandlung")
+ARCHMASTERY = _register("archmastery", 1099498588008095845, "Erzmeisterschaft")
+SPEED = _register("speed", 1099499155640029284, "Tempo")
+
+HEALTH_WISP = _register("health_wisp", 1057796529286549524, "Lebensgeist")
+MANA_WISP = _register("mana_wisp", 1057796530855227503, "Manageist")
+FISHING_LUCK = _register("fishing_luck", 1099505488086962197, "Angelglück")
+
+PIP = _register("pip", 1099498720686526596, "Pip")
+POWER_PIP = _register("power_pip", 1099490366832525422, "Power-Pip")
+SHADOW_PIP = _register("shadow_pip", 1099490394884014090, "Schatten-Pip")
+SHADOW_PIP_STAT = _register("shadow_pip_stat", 1111511532472385599, "Schatten-Pip")
+
+HAT = _register("hat", 1056720350890696794, "Hut")
+ROBE = _register("robe", 1056724593244635156, "Robe")
+BOOTS = _register("boots", 1056720259240972308, "Stiefel")
+WAND = _register("wand", 1056726250829389844, "Zauberstab")
+ATHAME = _register("athame", 1056720255315099649, "Athame")
+AMULET = _register("amulet", 1056720253213749259, "Amulett")
+RING = _register("ring", 1056722653311938580, "Ring")
+DECK = _register("deck", 1056720307433521172, "Deck")
+MOUNT = _register("mount", 1056721062102048878, "Reittier")
+JEWEL = _register("jewel", 1058115414888026254, "Juwel")
+
+SOCKET_LOCKED = _register("socket_locked", 1099498847882981386, "Gesperrt")
+SOCKET_TEAR = _register("socket_tear", 1099505202173837372, "Tränensockel")
+SOCKET_CIRCLE = _register("socket_circle", 1099498888047644703, "Kreissockel")
+SOCKET_SQUARE = _register("socket_square", 1099505313616502856, "Quadratsockel")
+SOCKET_TRIANGLE = _register("socket_triangle", 1099505231055818823, "Dreieckssockel")
+SOCKET_STAR = _register("socket_star", 1435739641402753106, "Sternsockel")
+
+PIN_POWER = _register("pin_power", 1099490465117642823, "Kraft-Pin")
+PIN_SHIELD = _register("pin_shield", 1099504900452405268, "Schild-Pin")
+PIN_SWORD = _register("pin_sword", 1099490500651794442, "Schwert-Pin")
+
+NO_AUCTION = _register("no_auction", 1103072061997469806, "Keine Auktion")
+CROWNS_ONLY = _register("crowns_only", 1103073196795772988, "Nur Kronen")
+NO_COMBAT = _register("no_combat", 1103072126115782656, "Kein Kampf")
+NO_DROPS = _register("no_drops", 1103077911067643974, "Kein Beutefund")
+NO_DYE = _register("no_dye", 1103072157904424971, "Nicht färbbar")
+NO_HATCHMAKING = _register("no_hatchmaking", 1103072185611984896, "Keine Zuchtbörse")
+NO_PVP = _register("no_pvp", 1103072213525082243, "Kein PvP")
+NO_SELL = _register("no_sell", 1103073274474287174, "Nicht verkäuflich")
+NO_SHATTER = _register("no_shatter", 1103073305843478599, "Nicht zerstörbar")
+NO_TRADE = _register("no_trade", 1103074240741244928, "Nicht handelbar")
+PVP_ONLY = _register("pvp_only", 1103076334130958406, "Nur PvP")
+ARENA_POINTS_ONLY = _register("arena_points_only", 1103076387478306826, "Nur Arenapunkte")
+BLUE_ARENA_POINTS_ONLY = _register("blue_arena_points_only", 1103076471750279229, "Nur blaue Arenapunkte")
+LEVEL_RESTRICTION = _register("level_restriction", 1250964062758764614, "Mindeststufe")
+
+NONE = _register("none", 1107114212142100480, "Kein Effekt")
+CHARM = _register("charm", 1107749929880911953, "Zauberzeichen")
+WARD = _register("ward", 1107116033279524946, "Schutzzeichen")
+AURA = _register("aura", 1107114218714583050, "Aura")
+GLOBAL = _register("global", 1099498462711648416, "Global")
+AOE = _register("aoe", 1107752173271531601, "Flächeneffekt")
+STEAL = _register("steal", 1107116039034122281, "Diebstahl")
+MANIPULATION = _register("manipulation", 1107113759757049956, "Manipulation")
+ENCHANTMENT = _register("enchantment", 1107114210862829578, "Verzauberung")
+AURA_NEGATIVE = _register("aura_negative", 1107114217632440491, "Negative Aura")
+BLADE = _register("blade", 1107114216420294696, "Klinge")
+CURSE = _register("curse", 1107114214738382848, "Fluch")
+DOT = _register("dot", 1107113767868842094, "Schaden pro Runde")
+BOMB = _register("bomb", 1107113765511626863, "Verzögerter Schaden")
+HOT = _register("hot", 1107113760927252501, "Heilung pro Runde")
+JINX = _register("jinx", 1107114209390637126, "Verhexung")
+MUTATE = _register("mutate", 1107113757693448202, "Mutation")
+PABSORB = _register("pabsorb", 1107113758289047615, "Geschützte Absorption")
+PBLADE = _register("pblade", 1107113756397420556, "Geschützte Klinge")
+PCHARM = _register("pcharm", 1107113755428524064, "Geschütztes Zauberzeichen")
+PCURSE = _register("pcurse", 1107113754883280956, "Geschützter Fluch")
+PDOT = _register("pdot", 1107113753541099561, "Geschützter Rundenschaden")
+PBOMB = _register("pbomb", 1107116043316506644, "Geschützter verzögerter Schaden")
+PHOT = _register("phot", 1107116041928200294, "Geschützte Rundenheilung")
+PJINX = _register("pjinx", 1107116040606982279, "Geschützte Verhexung")
+POLYMORPH = _register("polymorph", 1107118045744332812, "Verwandlung")
+PTRAP = _register("ptrap", 1107116039994617887, "Geschützte Falle")
+PWARD = _register("pward", 1107133878575059044, "Geschütztes Schutzzeichen")
+RANDOM = _register("random", 1107133876603715644, "Zufällig")
+TRAP = _register("trap", 1107116031417266187, "Falle")
+THREAT = _register("threat", 1107113771173949460, "Bedrohung")
+STUN = _register("stun", 1107114221021450250, "Betäubung")
+DISPEL = _register("dispel", 1107114277665525852, "Zaubersperre")
+MINION = _register("minion", 1107114223496081518, "Handlanger")
+ROUNDS = _register("rounds", 1107133797109075988, "Runden")
+SPIRIT = _register("spirit", 1107113774378405901, "Geist")
+ELEMENTAL = _register("elemental", 1107111620800426024, "Elementar")
+ALL_ENEMIES = _register("all_enemies", 1107111669961855018, "Alle Gegner")
+ALL_FRIENDS = _register("all_friends", 1107111568463908905, "Alle Verbündeten")
+ALL_ENEMIES_SQUARE = _register("all_enemies_square", 1107749884880228472, "Gegnergruppe")
+ALL_FRIENDS_SQUARE = _register("all_friends_square", 1107749883101839390, "Verbündetengruppe")
+ALL_ENEMIES_SELECT = _register("all_enemies_select", 1222021754986430504, "Gegnerauswahl")
+ALL_FRIENDS_SELECT = _register("all_friends_select", 1222021790184898621, "Verbündetenauswahl")
+AFTERLIFE = _register("afterlife", 1107111534506823840, "Nachwirkung")
+ABSORB = _register("absorb", 1107111476730286141, "Absorption")
+DAMAGE_OR_DRAIN = _register("damage_or_drain", 1107111451342147645, "Schaden oder Entzug")
+SELF = _register("self", 1107111430278357093, "Selbst")
+CLOAK = _register("cloak", 1107111407138394113, "Tarnung")
+CHROMATIC_CASTER = _register("chromatic_caster", 1222566258705432596, "Schule des Zaubernden")
+CHROMATIC_TARGET = _register("chromatic_target", 1222566223431077968, "Schule des Ziels")
+SHIELD = _register("shield", 1222565837978730538, "Schild")
+WEAKNESS = _register("weakness", 1222565866806186038, "Schwäche")
+
+GROWING = _register("growing", 1110956271928086709, "Wachstum")
+PEST = _register("pest", 1110956273014427778, "Schädlinge")
+SOIL = _register("soil", 1110956263740821614, "Erde")
+G_UTILITY = _register("g_utility", 1110956270804021358, "Gartenhilfe")
+PROTECTION = _register("protection", 1110958909918806076, "Schutz")
+
+CATCHING = _register("catching", 1110956269851922572, "Fang")
+FS_UTILITY = _register("fs_utility", 1110956265951199293, "Angelhilfe")
+
+INCANTATION = _register("incantation", 1110957277042725047, "Beschwörung")
+BENEFICIAL = _register("beneficial", 1110956268434247780, "Unterstützung")
+SIGIL = _register("sigil", 1110957279940984872, "Siegel")
+TELEPORTATION = _register("teleportation", 1110957278540070983, "Teleportation")
+RITUAL = _register("ritual", 1110956267134013543, "Ritual")
+
+SHADOW_SELF = _register("shadow_self", 1429994134713925672, "Schattenform")
+SHADOW_CREATURE = _register("shadow_creature", 1429994132117393591, "Schattenwesen")
+SHADOW_MINION = _register("shadow_minion", 1429994133358907513, "Schattenhandlanger")
+
+FIRE_PIP = _register("fire_pip", 1434355875132211210, "Feuer-Pip")
+ICE_PIP = _register("ice_pip", 1434355880723222569, "Eis-Pip")
+STORM_PIP = _register("storm_pip", 1434355876491300964, "Sturm-Pip")
+DEATH_PIP = _register("death_pip", 1434355881641771149, "Todes-Pip")
+LIFE_PIP = _register("life_pip", 1434355879825637456, "Lebens-Pip")
+MYTH_PIP = _register("myth_pip", 1434355878642847774, "Mythos-Pip")
+BALANCE_PIP = _register("balance_pip", 1434355882409459712, "Balance-Pip")

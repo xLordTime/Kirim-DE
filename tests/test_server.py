@@ -52,9 +52,12 @@ class ServerUpdates(unittest.TestCase):
         self.assertIn("local-test-value", (self.root / ".env").read_text())
 
     def test_backup_contains_consistent_database_and_env(self):
+        emoji_map = self.root / "data/emojis.json"
+        emoji_map.write_text('{"application_id":"123","emojis":{}}')
         archive = server.backup(self.root)
         with ZipFile(archive) as zipfile:
             self.assertIn("local-test-value", zipfile.read("config/.env").decode())
+            self.assertEqual(zipfile.read("data/emojis.json"), emoji_map.read_bytes())
             target = self.root / "restored.db"
             target.write_bytes(zipfile.read("data/items.db"))
         with sqlite3.connect(target) as db:

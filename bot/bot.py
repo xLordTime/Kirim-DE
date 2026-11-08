@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands
 from loguru import logger
 
+from .emojis import APP_EMOJI_NAMES, EMOJI_MAP_FILE, activate_emoji_map
 from .localization import install_locale, normalize_name, load_entries
 from .command_locale import GermanTranslator
 
@@ -100,6 +101,9 @@ class TheBot(commands.Bot):
 
     async def setup_hook(self):
         await self.prepare_data()
+        emoji_count = await activate_emoji_map(self, self.data_dir / EMOJI_MAP_FILE)
+        logger.info("Kirim-DE App-Emojis: {}/{}. Fehlende Symbole erscheinen als Text.",
+            emoji_count, len(APP_EMOJI_NAMES))
         await self.load_extensions_from_dir()
         await self.tree.set_translator(GermanTranslator())
         if os.getenv("KIRIM_SYNC_COMMANDS", "true").lower() in {"true", "1", "yes"}:
