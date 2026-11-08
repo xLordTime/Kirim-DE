@@ -46,6 +46,14 @@ class AppEmojis(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(str(emojis.FIRE), "[Feuer]")
         self.client.fetch_application_emojis.assert_not_awaited()
 
+    def test_negative_aura_fallback_does_not_insert_positive_aura(self):
+        from bot.extensions.spells import Spells
+
+        positive = discord.PartialEmoji(name="kirim_aura", id=234567890123456789)
+        with patch.object(emojis, "_active_emojis", {emojis.AURA.source_id: positive}):
+            rendered = Spells(None).replace_condition_with_emojis("Target Negative Aura")
+        self.assertEqual(rendered, "Target [Aura (negativ)]")
+
     async def test_interrupted_upload_is_reused_on_retry(self):
         fire_id = emojis.FIRE.source_id
         damage_id = emojis.DAMAGE.source_id
